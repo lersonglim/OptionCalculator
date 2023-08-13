@@ -1,11 +1,11 @@
 #ifndef date_util_HPP
 #define date_util_HPP
 
-#include "date/date.h"
+#include <chrono>
+#include <iostream>
 
-using namespace date::literals;
-
-date::year_month_day get_today_date();
-int day_diff(date::year_month_day date_1, date::year_month_day date_2);
+std::chrono::year_month_day get_today_date();
+std::chrono::year_month_day date_from_str(std::string date_string);
+int day_diff(std::chrono::year_month_day start_date, std::chrono::year_month_day end_date);
 
 #endif

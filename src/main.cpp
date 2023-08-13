@@ -1,23 +1,26 @@
 #include <iostream>
 #include "option.hpp"
 #include "date_util.hpp"
-#include "date/date.h"
-using namespace date::literals;
+#include <chrono>
 
 int main(int argc, char *argv[])
 {
     float strike = 1.0;
 
-    date::year_month_day expiry_date = 2023_y / date::August / 31;
+    std::chrono::year_month_day expiry_date = date_from_str("2024-1-31");
 
-    EuropeanOption option(1.0, 1.0, 1.0, CallPut::call, expiry_date);
-    date::year_month_day today = get_today_date();
+    EuropeanOption call_option(3700, 5.25 / 100, 34.29 / 100, CallPut::call, expiry_date);
+    EuropeanOption put_option(3700, 5.25 / 100, 34.29 / 100, CallPut::put, expiry_date);
 
-    // int res = day_diff(today, today);
+    std::chrono::year_month_day today = date_from_str("2023-8-13");
 
-    // std::cout << "value " << res << std::endl;
-    std::cout << "Today's date: " << today << std::endl;
-    std::cout << option.price(1.0) << std::endl;
-    std::cout << option.calc_time_to_maturity(today) << std::endl;
+    std::cout << call_option.price(4464.05) << std::endl;
+
+    std::cout << put_option.price(4464.05) << std::endl;
+
+    // std::cout << option.implied_vol(4464.05, 947.38) << std::endl;
+
+    // std::cout << day_diff(today, expiry_date) << std::endl;
+    // std::cout << option.calc_time_to_maturity(today) << std::endl;
     return 0;
 }

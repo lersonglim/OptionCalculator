@@ -1,7 +1,8 @@
 #ifndef EuropeanOption_HPP
 #define EuropeanOption_HPP
 
-#include "date/date.h"
+#include <chrono>
+#include <array>
 
 enum CallPut
 {
@@ -12,19 +13,29 @@ enum CallPut
 class EuropeanOption
 {
 public:
-    EuropeanOption(float strike, float rate, float vol, CallPut callput, date::year_month_day expiry_date); // Constructor
-    ~EuropeanOption();                                                                                      // Destructor
+    EuropeanOption(double strike, double rate, double vol, CallPut callput, std::chrono::year_month_day expiry_date); // Constructor
+    ~EuropeanOption();                                                                                                // Destructor
 
-    float m_strike;
-    float m_rate;
-    float m_vol;
+    double m_strike;
+    double m_rate;
+    double m_vol;
     CallPut m_callput;
-    date::year_month_day m_expiry;
+    std::chrono::year_month_day m_expiry;
 
-    // float price();
-    int calc_time_to_maturity(date::year_month_day date);
-    float price(float spot);
-    // float price(float spot, float time_to_maturity);
+    // double price();
+    double calc_time_to_maturity(std::chrono::year_month_day date);
+    double implied_vol(double spot, double observed_price);
+
+    double vega(double spot);
+    double vega(double spot, double implied_vol);
+
+    double price(double spot);
+    double price(double spot, double vol);
+    double calc_d1(double spot, double time_to_maturity);
+    double calc_d1(double spot, double time_to_maturity, double vol);
+    double calc_d2(double d2, double time_to_maturity);
+    double calc_d2(double d2, double time_to_maturity, double vol);
+    // double price(double spot, double time_to_maturity);
 };
 
 #endif
