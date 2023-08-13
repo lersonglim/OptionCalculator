@@ -71,9 +71,6 @@ double EuropeanOption::price(double spot, double vol)
     double d2 = calc_d2(d1, t, vol);
 
     double price = cdf_normal(d1) * spot - cdf_normal(d2) * m_strike * std::exp(-m_rate * t);
-
-    std::cout << "Price is :" << price << std::endl;
-
     return price;
 }
 
@@ -81,7 +78,6 @@ double EuropeanOption::implied_vol(double spot, double observed_price)
 {
     auto func = [&](double vol)
     {
-        std::cout << "trial vol is :" << vol << std::endl;
         return std::make_tuple(price(spot, vol) - observed_price, vega(spot, vol));
     };
 

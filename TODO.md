@@ -1,3 +1,3 @@
 # TODO
 
-- Switch to using vcpkg for package manager
+- GUI for option calculation
