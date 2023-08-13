@@ -21,7 +21,7 @@ spot = 4464.05
 print("Measuring cplusplus pybind pricing time")
 
 with catchtime() as t:
-    call_option = option.EuropeanOption(strike, rate, sigma, option.CallPut.call, "2024-1-31");
+    call_option = option.EuropeanOption(strike, rate, sigma, option.CallPut.call, "2024-1-31")
     print(call_option.price(spot))
 
 from optionprice import Option
