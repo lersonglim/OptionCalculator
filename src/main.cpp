@@ -2,37 +2,35 @@
 #include "option.hpp"
 #include "date_util.hpp"
 #include <chrono>
-// #include <pybind11/pybind11.h>
+
 #include <pybind11/pybind11.h>
 
-int add(int a, int b)
-{
-    return a + b;
-}
+namespace py = pybind11;
 
-PYBIND11_MODULE(TestBinding, m)
+PYBIND11_MODULE(option, m)
 {
-    m.def("add", &add, "A function that adds two numbers");
+    py::class_<EuropeanOption>(m, "EuropeanOption")
+        .def(py::init<double, double, double, CallPut, std::string>())
+        .def("implied_vol", (double(EuropeanOption::*)(double, double)) & EuropeanOption::implied_vol)
+        .def("vega", (double(EuropeanOption::*)(double, double)) & EuropeanOption::vega)
+        .def("price", (double(EuropeanOption::*)(double)) & EuropeanOption::price)
+        .def("price", (double(EuropeanOption::*)(double, double)) & EuropeanOption::price)
+        .def("calc_d1", (double(EuropeanOption::*)(double, double)) & EuropeanOption::calc_d1)
+        .def("calc_d1", (double(EuropeanOption::*)(double, double, double)) & EuropeanOption::calc_d1)
+        .def("calc_d2", (double(EuropeanOption::*)(double, double)) & EuropeanOption::calc_d2)
+        .def("calc_d2", (double(EuropeanOption::*)(double, double, double)) & EuropeanOption::calc_d2);
+
+    py::enum_<CallPut>(m, "CallPut")
+        .value("call", CallPut::call)
+        .value("put", CallPut::put)
+        .export_values();
 }
 
 int main(int argc, char *argv[])
 {
-    float strike = 1.0;
-
-    std::chrono::year_month_day expiry_date = date_from_str("2024-1-31");
-
-    EuropeanOption call_option(3700, 5.25 / 100, 34.29 / 100, CallPut::call, expiry_date);
-    EuropeanOption put_option(3700, 5.25 / 100, 34.29 / 100, CallPut::put, expiry_date);
-
-    std::chrono::year_month_day today = date_from_str("2023-8-13");
-
+    EuropeanOption call_option(3700, 5.25 / 100, 34.29 / 100, CallPut::call, "2024-1-31");
+    EuropeanOption put_option(3700, 5.25 / 100, 34.29 / 100, CallPut::put, "2024-1-31");
     std::cout << call_option.price(4464.05) << std::endl;
-
     std::cout << put_option.price(4464.05) << std::endl;
-
-    // std::cout << option.implied_vol(4464.05, 947.38) << std::endl;
-
-    // std::cout << day_diff(today, expiry_date) << std::endl;
-    // std::cout << option.calc_time_to_maturity(today) << std::endl;
     return 0;
 }

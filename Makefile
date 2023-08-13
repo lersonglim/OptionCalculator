@@ -3,4 +3,4 @@ compile:
 	cmake --build build/
 
 run:
-	build/OptionCalculator
+	build/option_main

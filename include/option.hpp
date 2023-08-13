@@ -14,7 +14,8 @@ class EuropeanOption
 {
 public:
     EuropeanOption(double strike, double rate, double vol, CallPut callput, std::chrono::year_month_day expiry_date); // Constructor
-    ~EuropeanOption();                                                                                                // Destructor
+    EuropeanOption(double strike, double rate, double vol, CallPut callput, std::string expiry_date_str);
+    ~EuropeanOption(); // Destructor
 
     double m_strike;
     double m_rate;

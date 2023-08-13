@@ -9,6 +9,12 @@
 
 EuropeanOption::EuropeanOption(double strike, double rate, double vol, CallPut callput, std::chrono::year_month_day expiry_date) : m_strike(strike), m_rate(rate), m_vol(vol), m_callput(callput), m_expiry(expiry_date) {}
 
+EuropeanOption::EuropeanOption(double strike, double rate, double vol, CallPut callput, std::string expiry_date_str) : m_strike(strike), m_rate(rate), m_vol(vol), m_callput(callput)
+{
+    std::chrono::year_month_day expiry_date = date_from_str(expiry_date_str);
+    m_expiry = expiry_date;
+}
+
 EuropeanOption::~EuropeanOption() {}
 
 double EuropeanOption::calc_time_to_maturity(std::chrono::year_month_day date)
