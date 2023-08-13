@@ -2,6 +2,18 @@
 #include "option.hpp"
 #include "date_util.hpp"
 #include <chrono>
+// #include <pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
+
+int add(int a, int b)
+{
+    return a + b;
+}
+
+PYBIND11_MODULE(TestBinding, m)
+{
+    m.def("add", &add, "A function that adds two numbers");
+}
 
 int main(int argc, char *argv[])
 {
