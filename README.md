@@ -11,4 +11,4 @@ It is very interesting to see C++ + Pybind is much faster than python. Please se
 - Call option pricing time:
 - ![Alt Text](https://github.com/lersonglim/OptionCalculator/blob/main/assets/price_time.png)
 - Call option implied volatility calculation time:
--![Alt Text](https://github.com/lersonglim/OptionCalculator/blob/main/assets/vol_time.png)
+- ![Alt Text](https://github.com/lersonglim/OptionCalculator/blob/main/assets/vol_time.png)
