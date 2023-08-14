@@ -2,7 +2,9 @@
 
 ## What is it about?
 
-Pet project to write option calculator in c++, and use pybind to export C++ API to python
+Pet project to write option calculator in c++, and use pybind to export C++ API to python. Front-End written using ReactJS and MUI.
+
+![Alt Text](https://github.com/lersonglim/OptionCalculator/blob/main/assets/option_calculator.png)
 
 ## Result
 
