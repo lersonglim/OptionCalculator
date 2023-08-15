@@ -7,20 +7,22 @@
 #include <cmath>
 #include <exception>
 
-EuropeanOption::EuropeanOption(double strike, double rate, double vol, CallPut callput, std::chrono::year_month_day expiry_date) : m_strike(strike), m_rate(rate), m_vol(vol), m_callput(callput), m_expiry(expiry_date) {}
+// EuropeanOption::EuropeanOption(double strike, double rate, double vol, CallPut callput, std::chrono::year_month_day expiry_date) : m_strike(strike), m_rate(rate), m_vol(vol), m_callput(callput), m_expiry(expiry_date) {}
 
-EuropeanOption::EuropeanOption(double strike, double rate, double vol, CallPut callput, std::string expiry_date_str) : m_strike(strike), m_rate(rate), m_vol(vol), m_callput(callput)
-{
-    std::chrono::year_month_day expiry_date = date_from_str(expiry_date_str);
-    m_expiry = expiry_date;
-}
+// EuropeanOption::EuropeanOption(double strike, double rate, double vol, CallPut callput, std::string expiry_date_str) : m_strike(strike), m_rate(rate), m_vol(vol), m_callput(callput)
+// {
+//     std::chrono::year_month_day expiry_date = date_from_str(expiry_date_str);
+//     m_expiry = expiry_date;
+// }
+
+EuropeanOption::EuropeanOption(double strike, double rate, double vol, CallPut callput, int days_until_expiry) : m_strike(strike), m_rate(rate), m_vol(vol), m_callput(callput), m_expiry_days(days_until_expiry) {}
 
 EuropeanOption::~EuropeanOption() {}
 
-double EuropeanOption::calc_time_to_maturity(std::chrono::year_month_day date)
-{
-    return day_diff(date, m_expiry) / 365.0;
-}
+// double EuropeanOption::calc_time_to_maturity(std::chrono::year_month_day date)
+// {
+//     return day_diff(date, m_expiry) / 365.0;
+// }
 
 double EuropeanOption::calc_d1(double spot, double t, double vol)
 {
@@ -44,8 +46,7 @@ double EuropeanOption::calc_d2(double d1, double t)
 
 double EuropeanOption::price(double spot)
 {
-    std::chrono::year_month_day today = get_today_date();
-    double t = calc_time_to_maturity(today);
+    double t = m_expiry_days / 365.0;
     double d1 = calc_d1(spot, t);
     double d2 = calc_d2(d1, t);
 
@@ -65,8 +66,7 @@ double EuropeanOption::price(double spot)
 
 double EuropeanOption::price(double spot, double vol)
 {
-    std::chrono::year_month_day today = get_today_date();
-    double t = calc_time_to_maturity(today);
+    double t = m_expiry_days / 365.0;
     double d1 = calc_d1(spot, t, vol);
     double d2 = calc_d2(d1, t, vol);
 
@@ -85,14 +85,66 @@ double EuropeanOption::implied_vol(double spot, double observed_price)
     return sol;
 }
 
-double EuropeanOption::vega(double spot, double implied_vol)
+double EuropeanOption::delta(double spot)
 {
-    std::chrono::year_month_day today = get_today_date();
-    double t = calc_time_to_maturity(today);
+    double t = m_expiry_days / 365.0;
+    double d1 = calc_d1(spot, t);
+    return cdf_normal(d1);
+}
 
-    double d1 = calc_d1(spot, implied_vol);
-    double N_d1 = std::exp(-0.5 * d1 * d1) / std::sqrt(2 * M_PI);
+double EuropeanOption::gamma(double spot)
+{
+    double t = m_expiry_days / 365.0;
+
+    double d1 = calc_d1(spot, t);
+    double N_d1_prime = pdf_normal(d1);
+
+    return N_d1_prime / (spot * m_vol * std::sqrt(t));
+}
+
+double EuropeanOption::vega(double spot)
+{
+    double t = m_expiry_days / 365.0;
+
+    double d1 = calc_d1(spot, t);
+    double N_d1 = pdf_normal(d1);
     double vega = spot * N_d1 * sqrt(t);
 
     return vega;
+}
+
+double EuropeanOption::vega(double spot, double implied_vol)
+{
+    double t = m_expiry_days / 365.0;
+
+    double d1 = calc_d1(spot, t, implied_vol);
+    double N_d1 = pdf_normal(d1);
+    double vega = spot * N_d1 * sqrt(t);
+
+    return vega;
+}
+
+double EuropeanOption::theta(double spot)
+{
+    double t = m_expiry_days / 365.0;
+
+    double d1 = calc_d1(spot, t);
+    double d2 = calc_d2(d1, t);
+    double N_d1_prime = pdf_normal(d1);
+    double N_d2 = cdf_normal(d2);
+
+    double theta = -(spot * N_d1_prime * m_vol) / (2 * std::sqrt(t)) - m_rate * m_strike * std::exp(-m_rate * t) * N_d2;
+
+    return theta;
+}
+
+double EuropeanOption::rho(double spot)
+{
+    double t = m_expiry_days / 365.0;
+    double d1 = calc_d1(spot, t);
+    double d2 = calc_d2(d1, t);
+    double N_d2 = cdf_normal(d2);
+
+    double rho = m_strike * t * std::exp(-m_rate * t) * N_d2;
+    return rho;
 }

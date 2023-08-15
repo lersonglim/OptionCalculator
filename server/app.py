@@ -19,11 +19,16 @@ class PriceHandler(tornado.web.RequestHandler):
             data["rate"] = data["rate"] / 100
             data["vol"] = data["vol"] / 100
 
-            call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, "2024-1-31")
-            
-            price = call_option.price(data["spot"])
-            rounded_price = round(price, 2)
-            response = {"price": rounded_price}
+            call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, data["expiry"])
+
+            response = {
+                "price": round(call_option.price(data["spot"]), 4),
+                "delta": round(call_option.delta(data["spot"]), 4),
+                "gamma": round(call_option.gamma(data["spot"]), 4),
+                "vega": round(call_option.vega(data["spot"])/100, 4),
+                "theta": round(call_option.theta(data["spot"])/365, 4),
+                "rho": round(call_option.rho(data["spot"])/100, 4),
+            }
             
             self.set_status(200)
             self.set_header("Content-Type", "application/json")

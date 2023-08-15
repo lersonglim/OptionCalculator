@@ -53,16 +53,25 @@ const orangeTheme = createTheme({
   },
 });
 
+const CustomCellRenderer = ({ value }) => {
+  const formattedValue = `$${value.toFixed(4)}`;
+  const cellStyle = {
+    color: value >= 0 ? "green" : "red",
+  };
+
+  return <div style={cellStyle}>{formattedValue}</div>;
+};
+
 function OptionCalculatorApp(props) {
   const [optionType, setOptionType] = useState("european");
   const [callPut, setCallPut] = useState("call");
-  const [underlyingPrice, setUnderlyingPrice] = useState(null);
-  const [strike, setStrike] = useState(null);
-  const [expiry, setExpiry] = useState(null);
-  const [rate, setRate] = useState(null);
-  const [volatility, setVolatility] = useState(null);
+  const [underlyingPrice, setUnderlyingPrice] = useState(490);
+  const [strike, setStrike] = useState(500);
+  const [expiry, setExpiry] = useState(180);
+  const [rate, setRate] = useState(5.25);
+  const [volatility, setVolatility] = useState(20);
   const [showGrid, setShowGrid] = useState(false);
-  const [responsePrice, setResponsePrice] = useState(null);
+  const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const onChangeHandler = (event, setFunc, type = "string") => {
@@ -81,16 +90,23 @@ function OptionCalculatorApp(props) {
       field: "fieldName",
       cellClass: "dark-column",
     },
-    { headerName: "", field: "value" },
+    {
+      headerName: "",
+      field: "value",
+      cellStyle: (params) => {
+        return params.value >= 0 ? { color: "green" } : { color: "red" };
+      },
+      valueFormatter: (params) => `$ ${params.value.toFixed(2)}`,
+    },
   ];
 
   const rowData = [
-    { fieldName: "Theoretical Price", value: responsePrice },
-    { fieldName: "Delta", value: "TBC" },
-    { fieldName: "Gamma", value: "TBC" },
-    { fieldName: "Vega", value: "TBC" },
-    { fieldName: "Theta", value: "TBC" },
-    { fieldName: "Rho", value: "TBC" },
+    { fieldName: "Theoretical Price", value: response?.price },
+    { fieldName: "Delta", value: response?.delta },
+    { fieldName: "Gamma", value: response?.gamma },
+    { fieldName: "Vega", value: response?.vega },
+    { fieldName: "Theta", value: response?.theta },
+    { fieldName: "Rho", value: response?.rho },
   ];
 
   const gridOptions = {
@@ -119,7 +135,7 @@ function OptionCalculatorApp(props) {
 
       const data = await response.json();
 
-      setResponsePrice("$ " + data.price.toString());
+      setResponse(data);
 
       console.log("Response data:", data);
     } catch (error) {
@@ -210,6 +226,7 @@ function OptionCalculatorApp(props) {
               inputProps={{
                 "aria-label": "weight",
               }}
+              defaultValue={underlyingPrice}
               onChange={(event) =>
                 onChangeHandler(event, setUnderlyingPrice, "float")
               }
@@ -235,6 +252,7 @@ function OptionCalculatorApp(props) {
               inputProps={{
                 "aria-label": "weight",
               }}
+              defaultValue={strike}
               onChange={(event) => onChangeHandler(event, setStrike, "float")}
             />
           </FormControl>
@@ -258,6 +276,7 @@ function OptionCalculatorApp(props) {
               inputProps={{
                 "aria-label": "weight",
               }}
+              defaultValue={expiry}
               onChange={(event) => onChangeHandler(event, setExpiry, "integer")}
             />
           </FormControl>
@@ -279,6 +298,7 @@ function OptionCalculatorApp(props) {
               inputProps={{
                 "aria-label": "weight",
               }}
+              defaultValue={rate}
               onChange={(event) => onChangeHandler(event, setRate, "float")}
             />
           </FormControl>
@@ -300,6 +320,7 @@ function OptionCalculatorApp(props) {
               inputProps={{
                 "aria-label": "weight",
               }}
+              defaultValue={volatility}
               onChange={(event) =>
                 onChangeHandler(event, setVolatility, "float")
               }
@@ -342,7 +363,7 @@ function OptionCalculatorApp(props) {
                 rowData={rowData}
                 domLayout="autoHeight"
                 style={{ width: "100%" }}
-                gridOptions={gridOptions} 
+                gridOptions={gridOptions}
                 defaultColDef={{
                   cellStyle: {
                     border: "1px solid gray",
