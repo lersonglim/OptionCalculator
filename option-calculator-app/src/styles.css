@@ -1,0 +1,12 @@
+.ag-theme-material {
+    --ag-font-size: 1rem;
+}
+
+.ag-header {
+border-bottom: 0px !important
+}
+
+.ag-theme-material .dark-column {
+    background-color: #333; /* Dark background color */
+    color: white; /* White font color */
+  }
