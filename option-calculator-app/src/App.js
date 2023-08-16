@@ -18,6 +18,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CircularProgress from "@mui/material/CircularProgress";
+import { ResponsiveLine } from "@nivo/line";
 
 import "./styles.css";
 import {
@@ -53,15 +54,6 @@ const orangeTheme = createTheme({
   },
 });
 
-const CustomCellRenderer = ({ value }) => {
-  const formattedValue = `$${value.toFixed(4)}`;
-  const cellStyle = {
-    color: value >= 0 ? "green" : "red",
-  };
-
-  return <div style={cellStyle}>{formattedValue}</div>;
-};
-
 function OptionCalculatorApp(props) {
   const [optionType, setOptionType] = useState("european");
   const [callPut, setCallPut] = useState("call");
@@ -72,7 +64,14 @@ function OptionCalculatorApp(props) {
   const [volatility, setVolatility] = useState(20);
   const [showGrid, setShowGrid] = useState(false);
   const [response, setResponse] = useState(null);
+
+  const [payOffRowData, setPayOffRowData] = useState([]);
+
+  const [expiredPayOffRowData, setExpiredPayOffRowData] = useState([]);
+
   const [loading, setLoading] = useState(false);
+
+  const [number, setNumber] = useState(18);
 
   const onChangeHandler = (event, setFunc, type = "string") => {
     if (type === "string") {
@@ -96,7 +95,12 @@ function OptionCalculatorApp(props) {
       cellStyle: (params) => {
         return params.value >= 0 ? { color: "green" } : { color: "red" };
       },
-      valueFormatter: (params) => `$ ${params.value.toFixed(2)}`,
+      ValueFormatter: (params) => {
+        if (typeof params.value === "number") {
+          return `$ ${params.value.toFixed(2)}`;
+        }
+        return "";
+      },
     },
   ];
 
@@ -116,6 +120,7 @@ function OptionCalculatorApp(props) {
   const handleButtonClick = async () => {
     setShowGrid(true);
     setLoading(true);
+    setNumber(number + 1);
 
     try {
       const requestData = {
@@ -143,7 +148,65 @@ function OptionCalculatorApp(props) {
     } finally {
       setLoading(false);
     }
+
+    try {
+      const requestData = {
+        callput: callPut,
+        spot: underlyingPrice,
+        strike: strike,
+        expiry: expiry,
+        rate: rate,
+        vol: volatility,
+      };
+
+      const url = "http://localhost:8888/api/payoff";
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+
+      setPayOffRowData(data.payoff);
+      setExpiredPayOffRowData(data.payoff_expired);
+
+      console.log("Response data:", data);
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // const payOffRowData = [
+  //   { x: 1, y: number },
+  //   { x: 2, y: 20 },
+  //   { x: 3, y: 15 },
+  //   { x: 4, y: 25 },
+  //   { x: 5, y: number },
+  //   // ... add more data points
+  // ];
+
+  const payOffData = [
+    {
+      id: "Now",
+      color: "green",
+      data: payOffRowData,
+    },
+    {
+      id: "On Expiry",
+      color: "yellow",
+      data: expiredPayOffRowData,
+    },
+  ];
+
+  // const payOffData = [
+  //   {
+  //     id: "series1",
+  //     data: payOffRowData,
+  //   },
+  // ];
+
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
@@ -347,32 +410,103 @@ function OptionCalculatorApp(props) {
       </Box>
       <Box
         display="flex"
-        width="33.33%"
+        width="23.33%"
         flexDirection="column"
         alignItems="center"
         paddingTop={10}
         paddingLeft={10}
       >
-        {loading ? (
-          <CircularProgress />
-        ) : (
-          showGrid && (
-            <Box className="ag-theme-material" width="100%" paddingBottom={3}>
-              <AgGridReact
-                columnDefs={columnDefs}
-                rowData={rowData}
-                domLayout="autoHeight"
-                style={{ width: "100%" }}
-                gridOptions={gridOptions}
-                defaultColDef={{
-                  cellStyle: {
-                    border: "1px solid gray",
-                    fontSize: "1.2rem",
-                  },
-                }}
-              />
-            </Box>
-          )
+        {showGrid && (
+          <Box className="ag-theme-material" width="100%" paddingBottom={3}>
+            <AgGridReact
+              columnDefs={columnDefs}
+              rowData={rowData}
+              domLayout="autoHeight"
+              style={{ width: "100%" }}
+              gridOptions={gridOptions}
+              defaultColDef={{
+                cellStyle: {
+                  border: "1px solid gray",
+                  fontSize: "1.2rem",
+                },
+              }}
+            />
+          </Box>
+        )}
+      </Box>
+      <Box
+        display="flex"
+        width="40%"
+        flexDirection="column"
+        alignItems="center"
+        paddingTop={10}
+        paddingLeft={0}
+      >
+        {showGrid && (
+          <Box style={{ width: "100%", height: "400px" }}>
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: 24,
+                fontWeight: 700,
+              }}
+            >
+              Payoff Chart
+            </div>
+            <ResponsiveLine
+              data={payOffData}
+              curve="linear"
+              margin={{ top: 5, right: 60, bottom: 50, left: 60 }}
+              xScale={{ type: "point" }}
+              yScale={{
+                type: "linear",
+                min: "auto",
+                max: "auto",
+                stacked: false,
+                reverse: false,
+              }}
+              axisBottom={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: "Underlying Price",
+                legendPosition: "middle",
+                legendOffset: 40,
+              }}
+              axisLeft={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: "Payoff",
+                legendPosition: "middle", // Center the legend
+                legendOffset: -50,
+              }}
+              enableGridX={false}
+              colors={{ scheme: "dark2" }}
+              enablePoints={true}
+              enableArea={false}
+              animate={true}
+              motionStiffness={90}
+              motionDamping={15}
+              useMesh={true}
+              legends={[
+                {
+                  anchor: "bottom-right",
+                  direction: "column",
+                  justify: false,
+                  translateX: 1,
+                  translateY: 0,
+                  itemsSpacing: 0,
+                  itemWidth: 80,
+                  itemHeight: 20,
+                  itemOpacity: 0.75,
+                  symbolSize: 12,
+                  symbolShape: "circle",
+                  symbolBorderColor: "rgba(0, 0, 0, .5)",
+                },
+              ]}
+            />
+          </Box>
         )}
       </Box>
     </Box>
