@@ -7,6 +7,14 @@ sys.path.append("../build")
 
 import option
 
+def calc_wrapper(option, spot, request_type="price"):
+    if request_type == "price":
+        return option.price(spot)
+    elif request_type == "delta":
+        return option.delta(spot)
+    else:
+        raise ValueError("Unknown request_type {}".format(request_type))
+
 def generate_points(x, n_points, percentage):
     res = []
     
@@ -30,7 +38,7 @@ class PayOffHandler(tornado.web.RequestHandler):
     def post(self):
         try:
             data = json.loads(self.request.body)
-            
+            print(data["request_type"])
             data["rate"] = data["rate"] / 100
             data["vol"] = data["vol"] / 100
 
@@ -44,10 +52,10 @@ class PayOffHandler(tornado.web.RequestHandler):
             results_expired = []
 
             for x in x_points:
-                results.append({"x": x, "y":round(call_option.price(x), 2)})
-                results_expired.append({"x": x, "y":round(expired_call_option.price(x), 2)})
+                results.append({"x": x, "y":round(calc_wrapper(call_option, x, data["request_type"]), 2)})
+                results_expired.append({"x": x, "y":round(calc_wrapper(expired_call_option, x, data["request_type"]), 2)})
 
-            response = {"payoff": results, "payoff_expired": results_expired}
+            response = {data["request_type"]: results, "{}_expired".format(data["request_type"]): results_expired}
             
             self.set_status(200)
             self.set_header("Content-Type", "application/json")
@@ -55,7 +63,6 @@ class PayOffHandler(tornado.web.RequestHandler):
         except json.JSONDecodeError:
             self.set_status(400)
             self.write("Invalid JSON data")
-
 
 class PriceHandler(tornado.web.RequestHandler):
 

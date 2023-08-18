@@ -69,9 +69,8 @@ function OptionCalculatorApp(props) {
 
   const [expiredPayOffRowData, setExpiredPayOffRowData] = useState([]);
 
-  const [loading, setLoading] = useState(false);
-
-  const [number, setNumber] = useState(18);
+  const [deltaRowData, setDeltaRowData] = useState([]);
+  const [expiredDeltaRowData, setExpiredDeltaRowData] = useState([]);
 
   const onChangeHandler = (event, setFunc, type = "string") => {
     if (type === "string") {
@@ -119,8 +118,6 @@ function OptionCalculatorApp(props) {
 
   const handleButtonClick = async () => {
     setShowGrid(true);
-    setLoading(true);
-    setNumber(number + 1);
 
     try {
       const requestData = {
@@ -146,7 +143,6 @@ function OptionCalculatorApp(props) {
     } catch (error) {
       console.error("Error:", error);
     } finally {
-      setLoading(false);
     }
 
     try {
@@ -157,6 +153,34 @@ function OptionCalculatorApp(props) {
         expiry: expiry,
         rate: rate,
         vol: volatility,
+        request_type: "price",
+      };
+
+      const url = "http://localhost:8888/api/payoff";
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+      console.log(data);
+
+      setPayOffRowData(data.price);
+      setExpiredPayOffRowData(data.price_expired);
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+    }
+
+    try {
+      const requestData = {
+        callput: callPut,
+        spot: underlyingPrice,
+        strike: strike,
+        expiry: expiry,
+        rate: rate,
+        vol: volatility,
+        request_type: "delta",
       };
 
       const url = "http://localhost:8888/api/payoff";
@@ -167,25 +191,13 @@ function OptionCalculatorApp(props) {
 
       const data = await response.json();
 
-      setPayOffRowData(data.payoff);
-      setExpiredPayOffRowData(data.payoff_expired);
-
-      console.log("Response data:", data);
+      setDeltaRowData(data.delta);
+      setExpiredDeltaRowData(data.delta_expired);
     } catch (error) {
       console.error("Error:", error);
     } finally {
-      setLoading(false);
     }
   };
-
-  // const payOffRowData = [
-  //   { x: 1, y: number },
-  //   { x: 2, y: 20 },
-  //   { x: 3, y: 15 },
-  //   { x: 4, y: 25 },
-  //   { x: 5, y: number },
-  //   // ... add more data points
-  // ];
 
   const payOffData = [
     {
@@ -200,12 +212,18 @@ function OptionCalculatorApp(props) {
     },
   ];
 
-  // const payOffData = [
-  //   {
-  //     id: "series1",
-  //     data: payOffRowData,
-  //   },
-  // ];
+  const deltaData = [
+    {
+      id: "Now",
+      color: "green",
+      data: deltaRowData,
+    },
+    {
+      id: "On Expiry",
+      color: "yellow",
+      data: expiredDeltaRowData,
+    },
+  ];
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -478,6 +496,72 @@ function OptionCalculatorApp(props) {
                 tickPadding: 5,
                 tickRotation: 0,
                 legend: "Payoff",
+                legendPosition: "middle", // Center the legend
+                legendOffset: -50,
+              }}
+              enableGridX={false}
+              colors={{ scheme: "dark2" }}
+              enablePoints={true}
+              enableArea={false}
+              animate={true}
+              motionStiffness={90}
+              motionDamping={15}
+              useMesh={true}
+              legends={[
+                {
+                  anchor: "bottom-right",
+                  direction: "column",
+                  justify: false,
+                  translateX: 1,
+                  translateY: 0,
+                  itemsSpacing: 0,
+                  itemWidth: 80,
+                  itemHeight: 20,
+                  itemOpacity: 0.75,
+                  symbolSize: 12,
+                  symbolShape: "circle",
+                  symbolBorderColor: "rgba(0, 0, 0, .5)",
+                },
+              ]}
+            />
+          </Box>
+        )}
+        {showGrid && (
+          <Box style={{ width: "100%", height: "450px", paddingTop: "40px" }}>
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: 24,
+                fontWeight: 700,
+              }}
+            >
+              Long Delta
+            </div>
+            <ResponsiveLine
+              data={deltaData}
+              curve="linear"
+              margin={{ top: 5, right: 60, bottom: 50, left: 60 }}
+              xScale={{ type: "point" }}
+              yScale={{
+                type: "linear",
+                min: "auto",
+                max: "auto",
+                stacked: false,
+                reverse: false,
+              }}
+              axisBottom={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: "Underlying Price",
+                legendPosition: "middle",
+                legendOffset: 40,
+              }}
+              axisLeft={{
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: "Delta",
                 legendPosition: "middle", // Center the legend
                 legendOffset: -50,
               }}
