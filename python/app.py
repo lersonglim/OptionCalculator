@@ -3,9 +3,20 @@ import tornado.web
 import json
 import sys
 
+import logging
+
 sys.path.append("../build")
 
 import option
+from concurrent.futures import ProcessPoolExecutor
+
+logging.basicConfig(level=logging.INFO)
+
+class OptionCalculatorApp(tornado.web.Application):
+
+    def __init__(self, *args, **kwargs):
+        self.executor = ProcessPoolExecutor(max_workers=4)
+        super().__init__(*args, **kwargs)
 
 def calc_wrapper(option, spot, request_type="price"):
     if request_type == "price":
@@ -30,32 +41,39 @@ def generate_points(x, n_points, percentage):
     res.append(x)
     return sorted(res)
 
+def run_task(data, x_points):
+    call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, data["expiry"])
+    return [{"x": x, "y":round(calc_wrapper(call_option, x, data["request_type"]), 2)} for x in x_points]
+
+def run_task_for_expired(data, x_points):
+    expired_call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, 0)
+    return [{"x": x, "y":round(calc_wrapper(expired_call_option, x, data["request_type"]), 2)} for x in x_points]
+
 class PayOffHandler(tornado.web.RequestHandler):
 
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "http://localhost:3000")
 
-    def post(self):
+    
+    async def post(self):
         try:
             data = json.loads(self.request.body)
-            print(data["request_type"])
+            logging.info(data)
+
             data["rate"] = data["rate"] / 100
             data["vol"] = data["vol"] / 100
 
-            call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, data["expiry"])
+            # call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, data["expiry"])
 
-            expired_call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, 0)
+            # expired_call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, 0)
 
             x_points = generate_points(data["spot"], 15, 0.02)
 
-            results = []
-            results_expired = []
+            future_results = self.application.executor.submit(run_task, data, x_points)
 
-            for x in x_points:
-                results.append({"x": x, "y":round(calc_wrapper(call_option, x, data["request_type"]), 2)})
-                results_expired.append({"x": x, "y":round(calc_wrapper(expired_call_option, x, data["request_type"]), 2)})
+            future_results_for_expired = self.application.executor.submit(run_task_for_expired, data, x_points)
 
-            response = {data["request_type"]: results, "{}_expired".format(data["request_type"]): results_expired}
+            response = {data["request_type"]: future_results.result(), "{}_expired".format(data["request_type"]): future_results_for_expired.result()}
             
             self.set_status(200)
             self.set_header("Content-Type", "application/json")
@@ -95,7 +113,7 @@ class PriceHandler(tornado.web.RequestHandler):
             self.write("Invalid JSON data")
 
 def make_app():
-    return tornado.web.Application([
+    return OptionCalculatorApp([
         (r"/api/price", PriceHandler), 
         (r"/api/payoff", PayOffHandler), 
     ])
