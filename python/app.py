@@ -1,22 +1,67 @@
 import tornado.ioloop
 import tornado.web
+import tornado.websocket
 import json
 import sys
 
 import logging
+from kafka import KafkaConsumer
+import asyncio
 
 sys.path.append("../build")
 
 import option
 from concurrent.futures import ProcessPoolExecutor
+from kafka import KafkaConsumer
+import threading
 
 logging.basicConfig(level=logging.INFO)
+
+class LatestSpotWebSocketHandler(tornado.websocket.WebSocketHandler):
+    connections = set()
+
+    def check_origin(self, origin):
+        return True # Otherwise Frond-End can't connect via websocket
+
+    def open(self):
+        self.connections.add(self)
+        self.write_message({"spx": {"spot": self.application.spx_latest_spot}})
+        print("WebSocket opened")
+
+    def on_close(self):
+        self.connections.remove(self)
+        print("WebSocket closed")
+
 
 class OptionCalculatorApp(tornado.web.Application):
 
     def __init__(self, *args, **kwargs):
         self.executor = ProcessPoolExecutor(max_workers=4)
+        topic = 'spx'
+        bootstrap_servers = 'localhost:9092'
+        self.loop = tornado.ioloop.IOLoop.current()
+        self.consumer = KafkaConsumer(
+            topic,
+            bootstrap_servers=bootstrap_servers,
+            group_id='your_group_id',
+            auto_offset_reset='latest',
+            enable_auto_commit=False
+        )
+        self.spx_latest_spot = None
+        self.consumer_thread = threading.Thread(target=self.kafka_consumer_thread)
+        self.consumer_thread.start()
         super().__init__(*args, **kwargs)
+
+    def kafka_consumer_thread(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        for message in self.consumer:
+            # key = message.key
+            value = round(float(message.value))
+            print(value)
+            self.spx_latest_spot = value
+            for connection in LatestSpotWebSocketHandler.connections:
+                connection.write_message({"spx": {"spot": self.spx_latest_spot}})
 
 def calc_wrapper(option, spot, request_type="price"):
     if request_type == "price":
@@ -43,11 +88,11 @@ def generate_points(x, n_points, percentage):
 
 def run_task(data, x_points):
     call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, data["expiry"])
-    return [{"x": x, "y":round(calc_wrapper(call_option, x, data["request_type"]), 2)} for x in x_points]
+    return [{"x": round(x), "y":round(calc_wrapper(call_option, x, data["request_type"]), 4)} for x in x_points]
 
 def run_task_for_expired(data, x_points):
     expired_call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, 0)
-    return [{"x": x, "y":round(calc_wrapper(expired_call_option, x, data["request_type"]), 2)} for x in x_points]
+    return [{"x": round(x), "y":round(calc_wrapper(expired_call_option, x, data["request_type"]), 4)} for x in x_points]
 
 class PayOffHandler(tornado.web.RequestHandler):
 
@@ -67,7 +112,7 @@ class PayOffHandler(tornado.web.RequestHandler):
 
             # expired_call_option = option.EuropeanOption(data["strike"], data["rate"], data["vol"], option.CallPut.call, 0)
 
-            x_points = generate_points(data["spot"], 15, 0.02)
+            x_points = generate_points(data["strike"]*0.99, 15, 0.02)
 
             future_results = self.application.executor.submit(run_task, data, x_points)
 
@@ -116,6 +161,7 @@ def make_app():
     return OptionCalculatorApp([
         (r"/api/price", PriceHandler), 
         (r"/api/payoff", PayOffHandler), 
+        (r"/api/latestspot", LatestSpotWebSocketHandler), 
     ])
 
 if __name__ == "__main__":

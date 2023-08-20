@@ -10,3 +10,9 @@ border-bottom: 0px !important
     background-color: #333; /* Dark background color */
     color: white; /* White font color */
   }
+
+.custom-disabled-class input {
+    color: black; /* Set the desired greyed-out color */
+}
+  
+  
