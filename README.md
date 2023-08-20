@@ -4,11 +4,11 @@
 
 Pet project to write option calculator in c++, and use pybind to export C++ API to python. Front-End written using ReactJS and MUI.
 
-Real Time Mode (Updated: 20th August 2023)
+Real Time Mode -> Live Stream Underlier Price (Updated: 20th August 2023)
 
-![Alt Text](assets/option_app_realtime.gif)
+![Alt Text](assets/optionapp_realtime.gif)
 
-Manual Mode:
+Manual Mode -> Manually Type the Underlier Price:
 
 ![Alt Text](assets/optioncalculator.gif)
 
