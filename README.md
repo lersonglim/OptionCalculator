@@ -6,7 +6,7 @@ Pet project to write option calculator in c++, and use pybind to export C++ API 
 
 Real Time Mode -> Live Stream Underlier Price (Updated: 20th August 2023)
 
-![Alt Text](assets/optionapp_realtime.gif)
+![Alt Text](assets/option_app_realtime.gif)
 
 Manual Mode -> Manually Type the Underlier Price:
 
